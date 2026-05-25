@@ -1,0 +1,325 @@
+[index.html](https://github.com/user-attachments/files/28214405/index.html)
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>点击大作战</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        .game-container {
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e94560;
+        }
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.6;
+            margin-top: 5px;
+        }
+        .click-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 15px 40px rgba(233, 69, 96, 0.4);
+            transition: transform 0.1s, box-shadow 0.1s;
+            margin: 20px 0;
+        }
+        .click-btn:active {
+            transform: scale(0.92);
+            box-shadow: 0 8px 20px rgba(233, 69, 96, 0.3);
+        }
+        .click-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .ad-btn {
+            width: 100%;
+            padding: 15px;
+            margin-top: 15px;
+            border: 2px dashed #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+            color: #ffd700;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .ad-btn:hover {
+            background: rgba(255, 215, 0, 0.2);
+        }
+        .ad-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #ffd700);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .message {
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+        .message.show {
+            display: block;
+        }
+        .message.success {
+            background: rgba(0, 255, 0, 0.1);
+            color: #4ade80;
+        }
+        .message.info {
+            background: rgba(255, 215, 0, 0.1);
+            color: #ffd700;
+        }
+        .floating-text {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-100px) scale(1.5); }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🔥 点击大作战</h1>
+            <div class="subtitle">看广告得双倍金币！</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="score">0</div>
+                <div class="stat-label">当前得分</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="coins">0</div>
+                <div class="stat-label">金币</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="level">1</div>
+                <div class="stat-label">等级</div>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress" style="width: 0%"></div>
+        </div>
+        
+        <button class="click-btn" id="clickBtn" onclick="handleClick()">点击!</button>
+        
+        <div class="message" id="message"></div>
+        
+        <button class="ad-btn" id="adBtn" onclick="showAd()" disabled>
+            📺 观看广告获得 100 金币
+        </button>
+    </div>
+
+    <script>
+        // 初始化 Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#1a1a2e');
+
+        // 游戏数据
+        let score = parseInt(localStorage.getItem('tg_score') || '0');
+        let coins = parseInt(localStorage.getItem('tg_coins') || '0');
+        let level = parseInt(localStorage.getItem('tg_level') || '1');
+        let clicks = parseInt(localStorage.getItem('tg_clicks') || '0');
+        let adWatched = false;
+
+        // 更新显示
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('coins').textContent = coins;
+            document.getElementById('level').textContent = level;
+            
+            // 进度条（每10分升一级）
+            const progress = ((score % 10) / 10) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+            
+            // 广告按钮状态（每5次点击可观看广告）
+            const adBtn = document.getElementById('adBtn');
+            if (clicks >= 5 && !adWatched) {
+                adBtn.disabled = false;
+                adBtn.textContent = '📺 观看广告获得 100 金币';
+            } else if (adWatched) {
+                adBtn.disabled = true;
+                adBtn.textContent = '✅ 今日广告已观看';
+            } else {
+                adBtn.disabled = true;
+                adBtn.textContent = `再点击 ${5 - clicks} 次可观看广告`;
+            }
+        }
+
+        // 显示消息
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message show ' + type;
+            setTimeout(() => msg.classList.remove('show'), 3000);
+        }
+
+        // 创建浮动文字
+        function createFloatingText(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.textContent = text;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        // 点击处理
+        function handleClick() {
+            score++;
+            clicks++;
+            
+            // 升级检查
+            if (score % 10 === 0) {
+                level++;
+                showMessage(`🎉 升级到等级 ${level}!`, 'success');
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                }
+            } else {
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+            }
+            
+            // 浮动文字
+            const btn = document.getElementById('clickBtn');
+            const rect = btn.getBoundingClientRect();
+            createFloatingText(
+                rect.left + rect.width / 2 - 20,
+                rect.top,
+                '+' + level
+            );
+            
+            // 保存数据
+            localStorage.setItem('tg_score', score);
+            localStorage.setItem('tg_clicks', clicks);
+            localStorage.setItem('tg_level', level);
+            
+            updateDisplay();
+        }
+
+        // 观看广告
+        function showAd() {
+            // 这里接入广告 SDK
+            // 示例：模拟广告观看
+            adWatched = true;
+            
+            // 显示广告弹窗（实际项目中替换为真实广告）
+            tg.showPopup({
+                title: '📺 广告播放中...',
+                message: '观看广告可获得 100 金币奖励！\n\n（实际项目中这里会播放真实广告）',
+                buttons: [
+                    { id: 'watch', type: 'default', text: '观看完成' },
+                    { id: 'cancel', type: 'cancel', text: '跳过' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'watch') {
+                    coins += 100;
+                    clicks = 0;
+                    localStorage.setItem('tg_coins', coins);
+                    localStorage.setItem('tg_clicks', clicks);
+                    showMessage('🎉 获得 100 金币！', 'success');
+                    
+                    if (tg.HapticFeedback) {
+                        tg.HapticFeedback.notificationOccurred('success');
+                    }
+                }
+                updateDisplay();
+            });
+        }
+
+        // 设置主按钮（分享）
+        tg.MainButton.setText('分享成绩');
+        tg.MainButton.onClick(() => {
+            const text = `🔥 我在点击大作战中得了 ${score} 分，等级 ${level}！来挑战我吧！`;
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent('https://t.me/mygame123321_bot/zhixia_game')}&text=${encodeURIComponent(text)}`);
+        });
+        tg.MainButton.show();
+
+        // 初始化显示
+        updateDisplay();
+        
+        // 欢迎消息
+        if (score === 0) {
+            showMessage('👋 点击按钮开始游戏！每5次点击可观看广告获得金币', 'info');
+        }
+    </script>
+</body>
+</html>

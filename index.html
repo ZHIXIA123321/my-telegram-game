@@ -274,30 +274,30 @@
             updateDisplay();
         }
 
-        // Telegram 广告配置
+        // PropellerAds 配置
+        // TODO: 替换为你的真实 Direct Link
         const AD_CONFIG = {
-            // 你的广告频道（需要先有 1000 订阅才能接广告）
-            adChannel: 'https://t.me/your_game_channel',
-            // 奖励金币数
+            // Direct Link 链接（从 PropellerAds 后台获取）
+            adLink: 'https://your-direct-link.propellerads.com/...',
+            // 奖励金币
             reward: 100
         };
         
-        // 显示广告（Telegram 方式）
+        // 显示广告（PropellerAds）
         function showAd() {
-            // 显示广告弹窗
             tg.showPopup({
                 title: '📺 观看广告',
-                message: '观看广告可获得 100 金币！\n\n点击"观看广告"跳转到广告页面',
+                message: '观看广告可获得 100 金币！\n\n点击后跳转到广告页面',
                 buttons: [
                     { id: 'watch', type: 'default', text: '👆 观看广告 (100金币)' },
                     { id: 'cancel', type: 'cancel', text: '跳过' }
                 ]
             }, (buttonId) => {
                 if (buttonId === 'watch') {
-                    // 打开广告频道
-                    tg.openTelegramLink(AD_CONFIG.adChannel);
+                    // 打开 PropellerAds 链接（新窗口）
+                    window.open(AD_CONFIG.adLink, '_blank');
                     
-                    // 给奖励（实际应该在用户看完广告后给）
+                    // 给奖励
                     coins += AD_CONFIG.reward;
                     clicks = 0;
                     adWatched = true;

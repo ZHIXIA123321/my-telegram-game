@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>点击大作战</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unityads.unity3d.com/ads.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -281,39 +282,42 @@
             placementId: 'rewardedVideo'
         };
         
-        // 模拟 Unity Ads 功能（测试用）
-        const unityAds = {
-            isReady: function(placementId) {
-                // 测试模式：总是返回 true
-                return true;
-            },
-            show: function(placementId, callbacks) {
-                // 模拟广告播放
-                tg.showPopup({
-                    title: '📺 广告播放中...',
-                    message: '[测试模式] 模拟 Unity Ads 视频广告\n\n点击"观看完成"模拟看完广告',
-                    buttons: [
-                        { id: 'complete', type: 'default', text: '✅ 观看完成' },
-                        { id: 'skip', type: 'cancel', text: '跳过' }
-                    ]
-                }, (buttonId) => {
-                    if (buttonId === 'complete') {
-                        if (callbacks && callbacks.onComplete) {
-                            callbacks.onComplete(placementId);
-                        }
-                    } else {
-                        if (callbacks && callbacks.onSkipped) {
-                            callbacks.onSkipped(placementId);
-                        }
+        // 初始化 Unity Ads
+        let unityAdsInitialized = false;
+        
+        function initUnityAds() {
+            if (typeof UnityAds !== 'undefined') {
+                UnityAds.init({
+                    gameId: UNITY_CONFIG.gameId,
+                    testMode: UNITY_CONFIG.testMode,
+                    onComplete: () => {
+                        console.log('Unity Ads 初始化成功');
+                        unityAdsInitialized = true;
+                    },
+                    onFailed: (error) => {
+                        console.log('Unity Ads 初始化失败:', error);
                     }
                 });
+            } else {
+                console.log('Unity Ads SDK 未加载');
             }
-        };
+        }
         
-        // 观看广告（Unity Ads 模式）
+        // 检查广告是否准备好
+        function isAdReady() {
+            if (typeof UnityAds !== 'undefined' && unityAdsInitialized) {
+                return UnityAds.isReady(UNITY_CONFIG.placementId);
+            }
+            return false;
+        }
+        
+        // 观看广告（真实 Unity Ads）
         function showAd() {
-            if (unityAds.isReady(UNITY_CONFIG.placementId)) {
-                unityAds.show(UNITY_CONFIG.placementId, {
+            if (isAdReady()) {
+                UnityAds.show(UNITY_CONFIG.placementId, {
+                    onStart: () => {
+                        console.log('广告开始播放');
+                    },
                     onComplete: (placementId) => {
                         // 广告看完，给奖励
                         coins += 100;
@@ -330,12 +334,43 @@
                     },
                     onSkipped: (placementId) => {
                         showMessage('广告已跳过，无奖励', 'info');
+                    },
+                    onFailed: (error) => {
+                        console.log('广告播放失败:', error);
+                        showMessage('广告加载失败，请稍后再试', 'error');
                     }
                 });
             } else {
-                showMessage('广告加载中，请稍后再试', 'info');
+                // Unity Ads 未准备好，使用备用广告
+                showBackupAd();
             }
         }
+        
+        // 备用广告（自定义）
+        function showBackupAd() {
+            tg.showPopup({
+                title: '📺 推荐内容',
+                message: '广告加载中...\n\n推荐：加入游戏频道获取福利',
+                buttons: [
+                    { id: 'visit', type: 'default', text: '查看 (50金币)' },
+                    { id: 'cancel', type: 'cancel', text: '跳过' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'visit') {
+                    tg.openTelegramLink('https://t.me/game_news_channel');
+                    coins += 50;
+                    clicks = 0;
+                    adWatched = true;
+                    localStorage.setItem('tg_coins', coins);
+                    localStorage.setItem('tg_clicks', clicks);
+                    showMessage('🎉 获得 50 金币！', 'success');
+                }
+                updateDisplay();
+            });
+        }
+        
+        // 页面加载时初始化 Unity Ads
+        initUnityAds();
 
         // 设置主按钮（分享）
         tg.MainButton.setText('分享成绩');

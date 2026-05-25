@@ -274,108 +274,67 @@
             updateDisplay();
         }
 
-        // 广告配置 - 在这里添加你的广告主
-        const ads = [
-            {
-                id: 1,
-                title: '🎮 推荐：太空冒险游戏',
-                message: '探索未知星球，收集稀有资源！限时福利！',
-                link: 'https://t.me/space_adventure_bot',
-                reward: 100,
-                contact: '@ad_contact_1' // 广告主联系方式
-            },
-            {
-                id: 2,
-                title: '📱 推荐：游戏资讯频道',
-                message: '每日更新最新游戏攻略、福利、兑换码！',
-                link: 'https://t.me/game_news_channel',
-                reward: 80,
-                contact: '@ad_contact_2'
-            },
-            {
-                id: 3,
-                title: '💎 推荐：钻石充值5折',
-                message: '限时优惠活动，错过等一年！',
-                link: 'https://t.me/diamond_shop_bot',
-                reward: 120,
-                contact: '@ad_contact_3'
-            }
-        ];
+        // Unity Ads 配置
+        const UNITY_CONFIG = {
+            testMode: false,  // 正式模式
+            gameId: '800000921', // 你的真实 Game ID
+            placementId: 'rewardedVideo'
+        };
         
-        let currentAd = null;
-        
-        // 观看广告
-        function showAd() {
-            // 随机选择广告
-            currentAd = ads[Math.floor(Math.random() * ads.length)];
-            
-            tg.showPopup({
-                title: currentAd.title,
-                message: currentAd.message + '\n\n👆 点击"查看详情"获得 ' + currentAd.reward + ' 金币！',
-                buttons: [
-                    { id: 'visit', type: 'default', text: '👆 查看详情 (' + currentAd.reward + '金币)' },
-                    { id: 'cancel', type: 'cancel', text: '跳过' }
-                ]
-            }, (buttonId) => {
-                if (buttonId === 'visit') {
-                    // 打开广告链接
-                    tg.openTelegramLink(currentAd.link);
-                    
-                    // 给奖励
-                    coins += currentAd.reward;
-                    clicks = 0;
-                    adWatched = true;
-                    localStorage.setItem('tg_coins', coins);
-                    localStorage.setItem('tg_clicks', clicks);
-                    showMessage('🎉 获得 ' + currentAd.reward + ' 金币！', 'success');
-                    
-                    // 记录广告数据（用于向广告主收费）
-                    logAdImpression(currentAd);
-                    
-                    if (tg.HapticFeedback) {
-                        tg.HapticFeedback.notificationOccurred('success');
+        // 模拟 Unity Ads 功能（测试用）
+        const unityAds = {
+            isReady: function(placementId) {
+                // 测试模式：总是返回 true
+                return true;
+            },
+            show: function(placementId, callbacks) {
+                // 模拟广告播放
+                tg.showPopup({
+                    title: '📺 广告播放中...',
+                    message: '[测试模式] 模拟 Unity Ads 视频广告\n\n点击"观看完成"模拟看完广告',
+                    buttons: [
+                        { id: 'complete', type: 'default', text: '✅ 观看完成' },
+                        { id: 'skip', type: 'cancel', text: '跳过' }
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'complete') {
+                        if (callbacks && callbacks.onComplete) {
+                            callbacks.onComplete(placementId);
+                        }
+                    } else {
+                        if (callbacks && callbacks.onSkipped) {
+                            callbacks.onSkipped(placementId);
+                        }
                     }
-                }
-                updateDisplay();
-            });
-        }
+                });
+            }
+        };
         
-        // 记录广告展示/点击（用于收费）
-        function logAdImpression(ad) {
-            const log = {
-                timestamp: new Date().toISOString(),
-                adId: ad.id,
-                adTitle: ad.title,
-                userId: tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'anonymous',
-                reward: ad.reward
-            };
-            
-            // 保存到本地（后面可以导出给广告主）
-            let adLogs = JSON.parse(localStorage.getItem('ad_logs') || '[]');
-            adLogs.push(log);
-            localStorage.setItem('ad_logs', JSON.stringify(adLogs));
-            
-            console.log('广告点击记录：', log);
-        }
-        
-        // 导出广告数据（给广告主看）
-        function exportAdData() {
-            const logs = JSON.parse(localStorage.getItem('ad_logs') || '[]');
-            const summary = {};
-            
-            logs.forEach(log => {
-                if (!summary[log.adId]) {
-                    summary[log.adId] = {
-                        title: log.adTitle,
-                        clicks: 0,
-                        totalReward: 0
-                    };
-                }
-                summary[log.adId].clicks++;
-                summary[log.adId].totalReward += log.reward;
-            });
-            
-            return summary;
+        // 观看广告（Unity Ads 模式）
+        function showAd() {
+            if (unityAds.isReady(UNITY_CONFIG.placementId)) {
+                unityAds.show(UNITY_CONFIG.placementId, {
+                    onComplete: (placementId) => {
+                        // 广告看完，给奖励
+                        coins += 100;
+                        clicks = 0;
+                        adWatched = true;
+                        localStorage.setItem('tg_coins', coins);
+                        localStorage.setItem('tg_clicks', clicks);
+                        showMessage('🎉 观看完成！获得 100 金币！', 'success');
+                        
+                        if (tg.HapticFeedback) {
+                            tg.HapticFeedback.notificationOccurred('success');
+                        }
+                        updateDisplay();
+                    },
+                    onSkipped: (placementId) => {
+                        showMessage('广告已跳过，无奖励', 'info');
+                    }
+                });
+            } else {
+                showMessage('广告加载中，请稍后再试', 'info');
+            }
         }
 
         // 设置主按钮（分享）

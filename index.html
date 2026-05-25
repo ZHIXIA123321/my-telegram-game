@@ -274,68 +274,80 @@
             updateDisplay();
         }
 
-        // 广告配置（你可以修改这里）
-        const ads = [
-            {
-                id: 1,
-                title: '🎮 推荐游戏：太空冒险',
-                message: '探索未知星球，收集稀有资源！',
-                link: 'https://t.me/space_adventure_bot',
-                reward: 100
-            },
-            {
-                id: 2,
-                title: '📱 推荐频道：游戏资讯',
-                message: '每日更新最新游戏攻略和福利！',
-                link: 'https://t.me/game_news_channel',
-                reward: 80
-            },
-            {
-                id: 3,
-                title: '💎 推荐：钻石充值优惠',
-                message: '限时5折优惠，错过等一年！',
-                link: 'https://t.me/diamond_shop_bot',
-                reward: 120
+        // Unity Ads 配置（替换为你的 Game ID）
+        const UNITY_GAME_ID = 'YOUR_UNITY_GAME_ID'; // 在这里填写你的 Unity Game ID
+        const UNITY_PLACEMENT_ID = 'rewardedVideo'; // 激励视频广告位
+        
+        // 加载 Unity Ads SDK
+        function loadUnityAds() {
+            if (typeof unityAds !== 'undefined') {
+                unityAds.init({
+                    gameId: UNITY_GAME_ID,
+                    testMode: true, // 测试模式，上线后改为 false
+                    onComplete: () => {
+                        console.log('Unity Ads 初始化完成');
+                    }
+                });
             }
-        ];
+        }
         
-        let currentAd = null;
-        
-        // 观看广告
+        // 观看广告（Unity Ads）
         function showAd() {
-            // 随机选择一个广告
-            currentAd = ads[Math.floor(Math.random() * ads.length)];
-            
+            // 检查 Unity Ads 是否可用
+            if (typeof unityAds !== 'undefined' && unityAds.isReady(UNITY_PLACEMENT_ID)) {
+                unityAds.show(UNITY_PLACEMENT_ID, {
+                    onStart: () => {
+                        console.log('广告开始播放');
+                    },
+                    onComplete: (placementId) => {
+                        // 广告看完，给奖励
+                        coins += 100;
+                        clicks = 0;
+                        adWatched = true;
+                        localStorage.setItem('tg_coins', coins);
+                        localStorage.setItem('tg_clicks', clicks);
+                        showMessage('🎉 观看完成！获得 100 金币！', 'success');
+                        
+                        if (tg.HapticFeedback) {
+                            tg.HapticFeedback.notificationOccurred('success');
+                        }
+                        updateDisplay();
+                    },
+                    onSkipped: (placementId) => {
+                        showMessage('广告已跳过，无奖励', 'info');
+                    }
+                });
+            } else {
+                // Unity Ads 未加载，使用备用广告
+                showBackupAd();
+            }
+        }
+        
+        // 备用广告（自定义）
+        function showBackupAd() {
             tg.showPopup({
-                title: currentAd.title,
-                message: currentAd.message + '\n\n点击"查看详情"可获得 ' + currentAd.reward + ' 金币！',
+                title: '📺 广告加载中...',
+                message: '暂时使用备用广告\n\n推荐：加入游戏频道获取最新资讯',
                 buttons: [
-                    { id: 'visit', type: 'default', text: '👆 查看详情 (' + currentAd.reward + '金币)' },
+                    { id: 'visit', type: 'default', text: '查看 (50金币)' },
                     { id: 'cancel', type: 'cancel', text: '跳过' }
                 ]
             }, (buttonId) => {
                 if (buttonId === 'visit') {
-                    // 打开广告链接
-                    tg.openTelegramLink(currentAd.link);
-                    
-                    // 给奖励
-                    coins += currentAd.reward;
+                    tg.openTelegramLink('https://t.me/game_news_channel');
+                    coins += 50;
                     clicks = 0;
                     adWatched = true;
                     localStorage.setItem('tg_coins', coins);
                     localStorage.setItem('tg_clicks', clicks);
-                    showMessage('🎉 获得 ' + currentAd.reward + ' 金币！', 'success');
-                    
-                    // 记录广告点击（后面可以统计）
-                    console.log('广告点击：', currentAd.id, currentAd.title);
-                    
-                    if (tg.HapticFeedback) {
-                        tg.HapticFeedback.notificationOccurred('success');
-                    }
+                    showMessage('🎉 获得 50 金币！', 'success');
                 }
                 updateDisplay();
             });
         }
+        
+        // 页面加载时初始化广告
+        loadUnityAds();
 
         // 设置主按钮（分享）
         tg.MainButton.setText('分享成绩');
